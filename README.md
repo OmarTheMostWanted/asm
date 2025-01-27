@@ -256,8 +256,6 @@ A conditional jump instruction is executed based on the state of the flags set b
 | `jbe` / `jna` | Jump if below or equal / not above (unsigned) | CF = 1 or ZF = 1 | `jbe below_equal_label` |
 
 
-### Example: Conditional Jump
-
 #### Example 1: Jump if Equal
 
 ```assembly
@@ -357,20 +355,19 @@ end:
 
 The `test` instruction performs a bitwise AND operation between two operands and sets the appropriate flags in the EFLAGS register based on the result. It does not store the result of the AND operation; it only affects the flags.
 
-### Syntax
+#### Syntax
 ```assembly
 test src, dest
 ```
 - `src`: The source operand (immediate value, register, or memory).
 - `dest`: The destination operand (register or memory).
 
-### Flags Affected by `test`
+#### Flags Affected by `test`
 - **ZF (Zero Flag)**: Set if the result of the AND operation is zero.
 - **SF (Sign Flag)**: Set if the result of the AND operation is negative.
 - **CF (Carry Flag)**: Always cleared to 0.
 - **OF (Overflow Flag)**: Always cleared to 0.
 
-### Example Usage
 
 #### Example 1: Testing a Register
 ```assembly
@@ -416,7 +413,7 @@ end:
     # End of the program
 ```
 
-### Summary
+#### Summary
 - **Operation**: The `test` instruction performs a bitwise AND operation between two operands.
 - **Flags**: It sets the ZF and SF flags based on the result of the AND operation, and always clears the CF and OF flags.
 - **Usage**: Commonly used to check if specific bits are set or to test if a value is zero.
@@ -429,10 +426,162 @@ Calls a subroutine or function.
 - Absolute (register or memory location): `call *address` (indirect call)
 - Also pushes the return address onto the stack (address of the next instruction after the call)
 
+#### Calling Conventions
+
+Defines how to pass arguments, return values, and manage the stack. This is important when using 3rd party libraries or calling functions written in other languages. Calling conventions are enforced by the compiler and runtime environment.
+
+Conventions include additional information such as handling of floating point regs
+
+- **Caller-Saved Registers**: Registers that the caller must save before calling a function if it wants to preserve their values.
+- This is known as register spill, which involves saving the register values to stack memory.
+
+- **Callee-Saved Registers**: Registers that the callee must save and restore if it uses them.
+
+- **Return Address**: The address to return to after a function call.
+
+- **Stack Frame**: The region of the stack that stores local variables and function call information.
+
+##### cdecl (C Declaration)
+Common calling convention for C functions on x86 (32-bit).
+
+- **arguments**: Pushed onto the stack in reverse order (right to left).
+
+- **return value**: Stored in `%eax`.
+
+- **caller-saved registers**: `%eax`, `%ecx`, and `%edx`.
+- Callee functions can modify these registers without saving them.
+
+- **callee-saved registers**: `%ebx`, `%esi`, `%edi`, `%ebp`.
+- Callee functions must save and restore these registers if they use them.
+
+##### System V AMD64 ABI (Application Binary Interface)
+Calling convention for x86-64 systems.
+
+- **arguments**: Passed in registers `%rdi`, `%rsi`, `%rdx`, `%rcx`, `%r8`, `%r9`.
+- Additional arguments are passed on the stack.
+
+- **return value**: Stored in `%rax`.
+
+- **caller-saved registers**: `%rax`, `%rcx`, `%rdx`, `%r8`, `%r9`, `%r10`, `%r11`.
+
+- **callee-saved registers**: `%rbx`, `%rbp`, `%r12`, `%r13`, `%r14`, `%r15`.
+- Callee functions must save and restore these registers if they use them.
+
+#### `call` Instruction
+Pushes next_ins_addr on stack and transfers control to address described by operand
+
+is equivalent to:
+```assembly
+push next_ins_addr
+jmp function
+```
+
+#### 32-bit x86 (cdecl)
+```assembly
+# Arguments: int a, int b, int c
+pushl %ecx # Push third argument
+pushl %ebx # Push second argument
+pushl %eax # Push first argument
+call function
+```
+
+#### 64-bit x86-64 (System V AMD64 ABI)
+```assembly
+# Arguments: int a, int b, int c
+movl %edi, %edi # First argument in %edi
+movl %esi, %esi # Second argument in %esi
+movl %edx, %edx # Third argument in %edx
+call function
+```
+
+#### `call` Instruction in 64-bit
+In x86-64 bit AT&T assembly, the `call` instruction performs the following steps:
+1. **Push the Return Address**: The address of the next instruction (after the call) is pushed onto the stack.
+2. **Jump to the Function**: Control is transferred to the target function.
+
+3. You still need to manage the stack frame within the function (prologue and epilogue).
+
+Here is the complete assembly equivalent to a `call` instruction, including all the necessary steps:
+
+```assembly
+# Arguments: int a, int b, int c, int d, int e, int f, int g, int h
+movq $1, %rdi # First argument in %rdi
+movq $2, %rsi # Second argument in %rsi
+movq $3, %rdx # Third argument in %rdx
+movq $4, %rcx # Fourth argument in %rcx
+movq $5, %r8 # Fifth argument in %r8
+movq $6, %r9 # Sixth argument in %r9
+
+# Push the additional arguments onto the stack (in reverse order)
+movq $8, %rax # Eighth argument
+pushq %rax
+movq $7, %rax # Seventh argument
+pushq %rax
+
+# Push the return address (next instruction address)
+leaq next_ins_addr(%rip), %rax # Load the address of the next instruction into %rax
+pushq %rax # Push the return address onto the stack
+
+# Jump to the function
+jmp function
+
+# next_ins_addr:
+# (The next instruction after the call)
+nop # Placeholder for the next instruction
+
+# Function prologue (inside the callee function)
+function:
+# This is equivalent to the enter instruction
+pushq %rbp # Save the caller's frame pointer
+movq %rsp, %rbp # Set up the callee's frame pointer
+
+# Function body
+# ...
+
+# Accessing the seventh and eighth arguments (on the stack)
+movq 16(%rbp), %rax # Move the seventh argument from the stack to %rax
+movq %rax, -0x48(%rbp) # Move the seventh argument to a local variable
+movq 24(%rbp), %rax # Move the eighth argument from the stack to %rax
+movq %rax, -0x50(%rbp) # Move the eighth argument to a local variable
+
+# Function epilogue (inside the callee function)
+# This is equivalent to the leave instruction
+movq %rbp, %rsp # Restore the stack pointer
+popq %rbp # Restore the caller's frame pointer
+ret # Return to the caller (pops the return address and jumps to it)
+```
+
 ### Return
 Returns from a subroutine.
 - Pops the return address from the stack
 - Sets PC to absolute address popped from the stack
+
+#### `ret` Instruction
+Pops return address from stack and transfers control to that address
+
+The `ret` instruction performs the following steps:
+1. Pops the return address from the stack.
+2. Jumps to the return address.
+
+Here is the complete assembly equivalent to a `ret` instruction:
+
+```assembly
+# Function epilogue (inside the callee function)
+movq %rbp, %rsp # Restore the stack pointer
+popq %rbp # Restore the caller's frame pointer
+
+# Equivalent to `ret`
+popq %rax # Pop the return address into %rax
+jmp *%rax # Jump to the return address
+```
+
+In this example:
+- The `movq %rbp, %rsp` instruction restores the stack pointer to the value it had before the function was called.
+- The `popq %rbp` instruction restores the caller's frame pointer.
+- The `popq %rax` instruction pops the return address from the stack into the `%rax` register.
+- The `jmp *%rax` instruction jumps to the return address stored in `%rax`.
+
+This sequence of instructions is equivalent to the `ret` instruction, which combines these steps into a single instruction.
 
 
 In x86 assembly, there are several ways to load an address into a register. The method you choose depends on whether you are working in 32-bit or 64-bit mode. Here are some common techniques for both 32-bit and 64-bit modes:
