@@ -61,6 +61,7 @@ Absolutely! Here's a table that includes more detailed descriptions of the diffe
 | Type | Description | Syntax  | Example |
 |---------------------|-------------------------------------------------------------------------------------------------|---------------------------|-----------------------------------------------------|
 | **Immediate**       | Constant values directly within the instruction itself, used immediately by the CPU.            | `$value`                  | `movl $10, %eax`    # Moves 10 into %eax            |
+| **Label Address**   | Represents the address of a label in the code | `$label` | `mov $message, %rdi` # Moves the address of the label `message` into %rdi |
 | **Register**        | Values stored in the CPU's registers, which are small, fast storage locations within the CPU.    | `%register`               | `movl %ebx, %eax`   # Moves value in %ebx to %eax   |
 | **Memory**          | Data stored in memory locations, specified by addresses in the operand.                         | `(address)` or `(base, index, scale, displacement)` | `movl 4(%ebp), %eax` # Moves value at (4 + %ebp) to %eax<br/>`movl (%eax,%ebx,4), %ecx` # Moves value at (%eax + 4 * %ebx) to %ecx |
 | **Effective Address** | Addresses dynamically calculated using base, index, scale, and displacement.                 | `(base, index, scale, displacement)` | `leal (%eax,%ebx,4), %ecx` # Loads effective address into %ecx |
@@ -742,3 +743,22 @@ disas [start[, end]]
   - Example: `(gdb) layout asm`
 - **Source and Assembly Layout**: Use the `layout split` command to view both source code and assembly instructions side by side.
   - Example: `(gdb) layout split`
+
+## Shellcode
+Shellcode is a small piece of code used as the payload in a software exploit. It is typically written in assembly language and injected into a vulnerable program to gain control over its execution.
+
+### System Calls in 32-bit Linux
+- In 32-bit Linux systems, system calls are invoked using the `int 0x80` instruction which generates a software interrupt. 
+- The system call number is passed in the `eax` register.
+- Arguments are passed in `ebx`, `ecx`, `edx`, `esi`, `edi`, and `ebp` registers.
+    - All registers are preserved across the system call except `eax`.
+- The return value is stored in `eax`.
+
+### System Calls in 64-bit Linux
+- Use the `syscall` instruction.
+- System call number is passed in `rax`.
+- Arguments are passed in `rdi`, `rsi`, `rdx`, `r10`, `r8`, and `r9` registers.
+    - The kernel destroys `rcx` and `r11`.
+    - System calls are limited to 6 arguments, you can't passed more on the stack.
+- The return value is stored in `rax`, which is a value between -4095 and -1 (-errno) on error, and a positive number or zero on success.
+- Note that 64-bit can also execute 32-bit code, so it can use the `int 0x80` method as well.
