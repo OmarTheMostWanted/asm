@@ -6,9 +6,12 @@
             "type": "shell",
             "command": "gcc",
             "args": [
+                "-m64",
+                "-nostdlib",
+                "-no-pie",
                 "-nostartfiles",
                 "-o",
-                "${workspaceFolder}/build/hello",
+                "${workspaceFolder}/build/hello64.bin",
                 "${workspaceFolder}/src/hello64.s"
             ],
             "group": {
