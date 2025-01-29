@@ -54,8 +54,6 @@
 | **l** | Long (32 bits) | `movl $1, %eax` |
 | **q** | Quad (64 bits) | `movq $1, %rax` |
 
-Absolutely! Here's a table that includes more detailed descriptions of the different types of operands:
-
 ## Types of Operands
 
 | Type | Description | Syntax  | Example |

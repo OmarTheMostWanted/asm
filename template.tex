@@ -1,0 +1,23 @@
+\documentclass[twocolumn]{article}
+\usepackage[margin=0.5in,columnsep=0.5in]{geometry}
+\usepackage{ltablex}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{hyperref}
+
+% Define \tightlist to avoid errors
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\begin{document}
+$if(title)$
+\title{$title$}
+\author{$author$}
+\date{$date$}
+\maketitle
+$endif$
+
+$body$
+
+\end{document}
